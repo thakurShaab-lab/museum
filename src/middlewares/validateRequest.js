@@ -7,7 +7,9 @@ export function validate(schema, source = "body") {
       const issue = result.error.issues[0];
       return next(new ApiError(400, "VALIDATION_ERROR", issue.message));
     }
-    req[source] = result.data;
+    if (source !== "query") {
+      req[source] = result.data;
+    }
     next();
   };
 }

@@ -4,9 +4,11 @@ import {
   index,
   mysqlEnum,
   mysqlTable,
-  varchar
+  varchar,
+  int
 } from "drizzle-orm/mysql-core";
 import { cities, countries, states } from "./locations.js";
+import { languages } from "./language.js";
 
 export const registrationStatusEnum = ["ACTIVE", "INACTIVE", "CANCELLED"];
 export const guestTypeEnum = ["GENERAL", "VIP", "VVIP"];
@@ -33,7 +35,9 @@ export const visitors = mysqlTable(
     passwordHash: varchar("password_hash", { length: 255 }).notNull(),
     guestType: mysqlEnum("guest_type", guestTypeEnum).notNull(),
     gender: mysqlEnum("gender", genderEnum).notNull(),
-    language: mysqlEnum("language", languageEnum).notNull(),
+    languageId: int("language_id")
+      .references(() => languages.id)
+      .notNull(),
     registrationStatus: mysqlEnum("registration_status", registrationStatusEnum)
       .notNull()
       .default("ACTIVE"),

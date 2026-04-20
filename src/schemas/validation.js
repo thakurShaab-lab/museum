@@ -1,26 +1,26 @@
-import { z } from "zod";
+import { z } from "zod"
 import {
   genderEnum,
   guestTypeEnum,
   languageEnum
-} from "./visitors.js";
+} from "./visitors.js"
 
 export const visitorIdSchema = z
   .string()
   .trim()
-  .regex(/^VIS-\d{8}-\d{6}$/, "Invalid visitor_id format");
+  .regex(/^VIS-\d{8}-\d{6}$/, "Invalid visitor_id format")
 
-export const imageIndexSchema = z.coerce.number().int().min(1).max(3);
-export const visitorIdParamsSchema = z.object({ visitor_id: visitorIdSchema });
+export const imageIndexSchema = z.coerce.number().int().min(1).max(3)
+export const visitorIdParamsSchema = z.object({ visitor_id: visitorIdSchema })
 export const visitorImageParamsSchema = z.object({
   visitor_id: visitorIdSchema,
   image_index: imageIndexSchema
-});
+})
 
 export const dateRangeSchema = z
   .object({
-    start_date: z.iso.datetime(),
-    end_date: z.iso.datetime(),
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
+    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().min(1).max(500).default(100)
   })
@@ -30,9 +30,9 @@ export const dateRangeSchema = z
         code: z.ZodIssueCode.custom,
         message: "The start_date cannot be later than the end_date.",
         path: ["start_date"]
-      });
+      })
     }
-  });
+  })
 
 export const registerVisitorSchema = z.object({
   first_name: z.string().trim().min(2).max(100),
@@ -43,7 +43,7 @@ export const registerVisitorSchema = z.object({
   password: z.string().min(8).max(72),
   guest_type: z.enum(guestTypeEnum),
   gender: z.enum(genderEnum),
-  language: z.enum(languageEnum),
+  language_id: z.coerce.number().int().positive(),
   ticket_type: z.string().trim().min(3).max(100).default("GENERAL_ADMISSION"),
   valid_from: z.iso.datetime(),
   valid_until: z.iso.datetime(),
@@ -84,7 +84,7 @@ export const registerVisitorSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "The valid_from cannot be later than valid_until.",
       path: ["valid_from"]
-    });
+    })
   }
 
   if (new Date(value.time_slot_start) > new Date(value.time_slot_end)) {
@@ -92,7 +92,7 @@ export const registerVisitorSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "The time_slot_start cannot be later than time_slot_end.",
       path: ["time_slot_start"]
-    });
+    })
   }
 
   if (!value.image_urls && !value.image_uploads && !value.multipart_images_present) {
@@ -100,7 +100,7 @@ export const registerVisitorSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "Provide images via image_urls, image_uploads, or multipart files.",
       path: ["image_urls"]
-    });
+    })
   }
 
   if (value.image_urls && value.image_uploads) {
@@ -108,14 +108,14 @@ export const registerVisitorSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: "Provide only one source for images: image_urls or image_uploads.",
       path: ["image_uploads"]
-    });
+    })
   }
-});
+})
 
 export const statesQuerySchema = z.object({
   country_id: z.coerce.number().int().positive()
-});
+})
 
 export const citiesQuerySchema = z.object({
   state_id: z.coerce.number().int().positive()
-});
+})

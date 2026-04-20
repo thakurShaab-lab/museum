@@ -1,27 +1,23 @@
-import { randomUUID } from "node:crypto";
-import { request as undiciRequest } from "undici";
-import { env } from "../config/env.js";
-import {
-  createVisitorRecord,
-  getVisitorById,
-  getVisitorExistence,
-  getVisitorImageUrl,
-  getVisitorsByDateRange
-} from "../models/visitorModel.js";
-import { getLocationHierarchy } from "../models/locationModel.js";
-import { hashPassword } from "../services/cryptoService.js";
-import { verifyAadhaar } from "../services/aadhaarVerificationService.js";
-import { resolveVisitorImageUrls } from "../services/visitorImageService.js";
-import { generateVisitorId } from "../services/visitorIdentityService.js";
-import { buildQrImageUrl, buildVisitorQrPayload } from "../services/visitorQrService.js";
-import { clearVisitorListCache } from "../services/visitorListCacheService.js";
-import { getTokenRotationMetadata } from "../services/tokenAuthService.js";
-import { ApiError } from "../utils/errors.js";
-import { toUtcIso } from "../utils/time.js";
+import { randomUUID } from "node:crypto"
+import { request as undiciRequest } from "undici"
+import { env } from "../config/env.js"
+import { createVisitorRecord, getVisitorById, getVisitorExistence, getVisitorImageUrl, getVisitorsByDateRange, findVisitorByEmailOrMobile } from "../models/visitorModel.js"
+import { getLanguageById } from "../models/languageModel.js"
+import { getLocationHierarchy } from "../models/locationModel.js"
+import { hashPassword } from "../services/cryptoService.js"
+import { verifyAadhaar } from "../services/aadhaarVerificationService.js"
+import { resolveVisitorImageUrls } from "../services/visitorImageService.js"
+import { generateVisitorId } from "../services/visitorIdentityService.js"
+import { buildQrImageUrl, buildVisitorQrPayload } from "../services/visitorQrService.js"
+import { clearVisitorListCache } from "../services/visitorListCacheService.js"
+import { getTokenRotationMetadata } from "../services/tokenAuthService.js"
+import { ApiError } from "../utils/errors.js"
+import { toUtcIso } from "../utils/time.js"
+
 
 function formatVisitorResponse(visitor, req) {
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-  const qrPayload = visitor.qrPayload ? JSON.parse(visitor.qrPayload) : null;
+  const baseUrl = `${req.protocol}://${req.get("host")}`
+  const qrPayload = visitor.qrPayload ? JSON.parse(visitor.qrPayload) : null
   return {
     visitor_id: visitor.visitorId,
     first_name: visitor.firstName,
@@ -47,18 +43,18 @@ function formatVisitorResponse(visitor, req) {
     image_urls: [1, 2, 3].map(
       (idx) => `${baseUrl}/api/v1/visitors/${visitor.visitorId}/images/${idx}`
     )
-  };
+  }
 }
 
 export async function validateVisitorExistence(req, res, next) {
   try {
-    const { visitor_id: visitorId } = req.params;
-    const visitor = await getVisitorExistence(visitorId);
+    const { visitor_id: visitorId } = req.params
+    const visitor = await getVisitorExistence(visitorId)
     if (!visitor) {
       return res.status(404).json({
         visitor_id: visitorId,
         exists: false
-      });
+      })
     }
 
     return res.status(200).json({
@@ -66,34 +62,34 @@ export async function validateVisitorExistence(req, res, next) {
       exists: true,
       registration_status: visitor.registration_status,
       guest_type: visitor.guest_type
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
 }
 
 export async function getVisitorDetails(req, res, next) {
   try {
-    const { visitor_id: visitorId } = req.params;
-    const visitor = await getVisitorById(visitorId);
+    const { visitor_id: visitorId } = req.params
+    const visitor = await getVisitorById(visitorId)
     if (!visitor) {
-      throw new ApiError(404, "VISITOR_NOT_FOUND", "Visitor ID does not exist.");
+      throw new ApiError(404, "VISITOR_NOT_FOUND", "Visitor ID does not exist.")
     }
-    return res.status(200).json(formatVisitorResponse(visitor, req));
+    return res.status(200).json(formatVisitorResponse(visitor, req))
   } catch (error) {
-    next(error);
+    next(error)
   }
 }
 
 export async function getVisitorIdCard(req, res, next) {
   try {
-    const { visitor_id: visitorId } = req.params;
-    const visitor = await getVisitorById(visitorId);
+    const { visitor_id: visitorId } = req.params
+    const visitor = await getVisitorById(visitorId)
     if (!visitor) {
-      throw new ApiError(404, "VISITOR_NOT_FOUND", "Visitor ID does not exist.");
+      throw new ApiError(404, "VISITOR_NOT_FOUND", "Visitor ID does not exist.")
     }
 
-    const qrPayload = visitor.qrPayload ? JSON.parse(visitor.qrPayload) : null;
+    const qrPayload = visitor.qrPayload ? JSON.parse(visitor.qrPayload) : null
     return res.status(200).json({
       visitor_id: visitor.visitorId,
       visitor_name: `${visitor.firstName} ${visitor.lastName}`.trim(),
@@ -104,24 +100,28 @@ export async function getVisitorIdCard(req, res, next) {
         slot_end: new Date(visitor.timeSlotEnd).toISOString()
       },
       qr_code: qrPayload ? { payload: qrPayload, image_url: buildQrImageUrl(qrPayload) } : null
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
 }
 
 export async function getVisitors(req, res, next) {
   try {
-    const { start_date: startDate, end_date: endDate, page, limit } = req.query;
+    const { start_date: startDate, end_date: endDate, page: pageStr, limit: limitStr } = req.query
+    const page = Number(pageStr)
+    const limit = Number(limitStr)
+    const startDateTime = new Date(startDate).toISOString().slice(0, 19).replace("T", " ")
+    const endDateTime = new Date(endDate + 'T23:59:59.999Z').toISOString().slice(0, 19).replace("T", " ")
     const result = await getVisitorsByDateRange(
-      new Date(startDate).toISOString().slice(0, 19).replace("T", " "),
-      new Date(endDate).toISOString().slice(0, 19).replace("T", " "),
+      startDateTime,
+      endDateTime,
       page,
       limit
-    );
+    )
 
-    const totalPages = Math.max(1, Math.ceil(result.totalRecords / limit));
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const totalPages = Math.max(1, Math.ceil(result.totalRecords / limit))
+    const baseUrl = `${req.protocol}://${req.get("host")}`
     return res.status(200).json({
       metadata: {
         total_records: result.totalRecords,
@@ -148,83 +148,111 @@ export async function getVisitors(req, res, next) {
           (idx) => `${baseUrl}/api/v1/visitors/${row.visitor_id}/images/${idx}`
         )
       }))
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
 }
 
 export async function getVisitorImage(req, res, next) {
   try {
-    const { visitor_id: visitorId } = req.params;
-    const imageIndex = Number(req.params.image_index);
-    const imageUrl = await getVisitorImageUrl(visitorId, imageIndex);
+    const { visitor_id: visitorId } = req.params
+    const imageIndex = Number(req.params.image_index)
+    const imageUrl = await getVisitorImageUrl(visitorId, imageIndex)
 
     if (!imageUrl) {
-      throw new ApiError(404, "IMAGE_NOT_FOUND", "Requested image does not exist.");
+      throw new ApiError(404, "IMAGE_NOT_FOUND", "Requested image does not exist.")
     }
 
     if (imageUrl.startsWith("/")) {
-      return res.redirect(302, imageUrl);
+      return res.redirect(302, imageUrl)
     }
 
     if (env.imageDeliveryMode === "stream") {
-      const upstream = await undiciRequest(imageUrl, { method: "GET", maxRedirections: 0 });
+      const upstream = await undiciRequest(imageUrl, { method: "GET", maxRedirections: 0 })
       if (upstream.statusCode >= 400) {
-        throw new ApiError(404, "IMAGE_NOT_FOUND", "Requested image does not exist.");
+        throw new ApiError(404, "IMAGE_NOT_FOUND", "Requested image does not exist.")
       }
 
       res.setHeader(
         "content-type",
         upstream.headers["content-type"] || "application/octet-stream"
-      );
-      upstream.body.pipe(res);
-      return;
+      )
+      upstream.body.pipe(res)
+      return
     }
 
-    return res.redirect(302, imageUrl);
+    return res.redirect(302, imageUrl)
   } catch (error) {
-    next(error);
+    next(error)
   }
 }
 
 export async function registerVisitor(req, res, next) {
   try {
-    const payload = req.body;
+    const payload = req.body
 
-    console.log("BODY RECEIVED:", req.body);
-    const location = await getLocationHierarchy(payload.country_id, payload.state_id, payload.city_id);
+    const location = await getLocationHierarchy(payload.country_id, payload.state_id, payload.city_id)
     if (!location) {
       throw new ApiError(
         400,
         "INVALID_LOCATION_HIERARCHY",
         "city_id must belong to state_id and state_id must belong to country_id."
+      )
+    }
+    const language = await getLanguageById(payload.language_id)
+
+    if (!language || language.length === 0) {
+      throw new ApiError(
+        400,
+        "INVALID_LANGUAGE",
+        "Provided language_id does not exist."
+      )
+    }
+
+    const existingVisitor = await findVisitorByEmailOrMobile(
+      payload.email,
+      payload.mobile_number
+    );
+
+    if (existingVisitor.length > 0) {
+      const conflictField =
+        existingVisitor[0].email === payload.email
+          ? "EMAIL_ALREADY_EXISTS"
+          : "MOBILE_ALREADY_EXISTS";
+
+      throw new ApiError(
+        409,
+        conflictField,
+        "Visitor with provided email or mobile number already exists."
       );
     }
-    const visitorId = generateVisitorId();
-    const aadhaarVerification = await verifyAadhaar(payload);
+
+    const visitorId = generateVisitorId()
+    const aadhaarVerification = await verifyAadhaar(payload)
     const imageUrls = await resolveVisitorImageUrls({
       visitorId,
       image_urls: payload.image_urls,
       image_uploads: payload.image_uploads,
       uploaded_files: req.files
-    });
+    })
     const qrPayload = buildVisitorQrPayload({
       visitor_id: visitorId,
-      first_name: payload.first_name,
-      last_name: payload.last_name,
-      ticket_type: payload.ticket_type,
-      package_details: payload.package_details,
-      valid_from: payload.valid_from,
-      valid_until: payload.valid_until,
-      time_slot_start: payload.time_slot_start,
-      time_slot_end: payload.time_slot_end
-    });
+      // first_name: payload.first_name,
+      // last_name: payload.last_name,
+      // ticket_type: payload.ticket_type,
+      // package_details: payload.package_details,
+      // valid_from: payload.valid_from,
+      // valid_until: payload.valid_until,
+      // time_slot_start: payload.time_slot_start,
+      // time_slot_end: payload.time_slot_end
+    })
 
     await createVisitorRecord({
       ...payload,
       visitor_id: visitorId,
       password_hash: hashPassword(payload.password),
+      languageId: payload.language_id,
       aadhaar_verification_status: aadhaarVerification.status,
       aadhaar_verification_ref: aadhaarVerification.reference_id,
       qr_payload: JSON.stringify(qrPayload),
@@ -236,8 +264,8 @@ export async function registerVisitor(req, res, next) {
       valid_until: new Date(payload.valid_until).toISOString().slice(0, 19).replace("T", " "),
       time_slot_start: new Date(payload.time_slot_start).toISOString().slice(0, 19).replace("T", " "),
       time_slot_end: new Date(payload.time_slot_end).toISOString().slice(0, 19).replace("T", " ")
-    });
-    clearVisitorListCache();
+    })
+    clearVisitorListCache()
 
     return res.status(201).json({
       visitor_id: visitorId,
@@ -253,9 +281,9 @@ export async function registerVisitor(req, res, next) {
         image_url: buildQrImageUrl(qrPayload)
       },
       reference_id: randomUUID()
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
 }
 
@@ -267,8 +295,8 @@ export async function getAuthConfiguration(_req, res, next) {
       token_enabled: env.authMode === "token" || env.authMode === "both",
       token_scheme: "Bearer",
       token_rotation: getTokenRotationMetadata()
-    });
+    })
   } catch (error) {
-    next(error);
+    next(error)
   }
 }

@@ -1,11 +1,21 @@
-import { and, between, count, eq, sql } from "drizzle-orm";
-import { db } from "../db/client.js";
-import { visitors } from "../schemas/visitors.js";
-import {
-  getCachedVisitors,
-  setCachedVisitors
-} from "../services/visitorListCacheService.js";
-import { mysqlDateTimeNow } from "../utils/time.js";
+import { and, between, count, eq, sql } from "drizzle-orm"
+import { db } from "../db/client.js"
+import { visitors } from "../schemas/visitors.js"
+import { getCachedVisitors, setCachedVisitors } from "../services/visitorListCacheService.js"
+import { mysqlDateTimeNow } from "../utils/time.js"
+
+
+export async function findVisitorByEmailOrMobile(email, mobile) {
+  return db
+    .select()
+    .from(visitors)
+    .where(
+      or(
+        eq(visitors.email, email),
+        eq(visitors.mobileNumber, mobile)
+      )
+    );
+}
 
 export async function getVisitorExistence(visitorId) {
   const rows = await db
@@ -16,33 +26,35 @@ export async function getVisitorExistence(visitorId) {
     })
     .from(visitors)
     .where(eq(visitors.visitorId, visitorId))
-    .limit(1);
-  return rows[0] || null;
+    .limit(1)
+  return rows[0] || null
 }
 
 export async function getVisitorById(visitorId) {
+  console.log("Fetching visitor by ID:", visitorId)
   const rows = await db
     .select()
     .from(visitors)
     .where(eq(visitors.visitorId, visitorId))
-    .limit(1);
-  return rows[0] || null;
+    .limit(1)
+  console.log("Database response for visitor ID:", rows)
+  return rows[0] || null
 }
 
 export async function getVisitorsByDateRange(startDate, endDate, page, limit) {
-  const cached = getCachedVisitors(startDate, endDate, page, limit);
+  const cached = getCachedVisitors(startDate, endDate, page, limit)
   if (cached) {
-    return cached;
+    return cached
   }
 
-  const offset = (page - 1) * limit;
+  const offset = (page - 1) * limit
 
   const [metadata] = await db
     .select({ total_records: count(visitors.id) })
     .from(visitors)
-    .where(between(visitors.registrationDate, startDate, endDate));
+    .where(between(visitors.registrationDate, startDate, endDate))
 
-  const totalRecords = Number(metadata.total_records || 0);
+  const totalRecords = Number(metadata.total_records || 0)
 
   const rows = await db
     .select({
@@ -67,14 +79,14 @@ export async function getVisitorsByDateRange(startDate, endDate, page, limit) {
     .where(between(visitors.registrationDate, startDate, endDate))
     .orderBy(sql`${visitors.registrationDate} ASC`)
     .limit(limit)
-    .offset(offset);
+    .offset(offset)
 
   const result = {
     totalRecords,
     data: rows
-  };
-  setCachedVisitors(startDate, endDate, page, limit, result);
-  return result;
+  }
+  setCachedVisitors(startDate, endDate, page, limit, result)
+  return result
 }
 
 export async function getVisitorImageUrl(visitorId, imageIndex) {
@@ -82,20 +94,20 @@ export async function getVisitorImageUrl(visitorId, imageIndex) {
     1: visitors.image1Url,
     2: visitors.image2Url,
     3: visitors.image3Url
-  };
+  }
 
-  const column = columnByIndex[imageIndex];
+  const column = columnByIndex[imageIndex]
   const rows = await db
     .select({ imageUrl: column })
     .from(visitors)
     .where(eq(visitors.visitorId, visitorId))
-    .limit(1);
+    .limit(1)
 
-  return rows[0]?.imageUrl || null;
+  return rows[0]?.imageUrl || null
 }
 
 export async function createVisitorRecord(payload) {
-  const now = mysqlDateTimeNow();
+  const now = mysqlDateTimeNow()
   const [inserted] = await db
     .insert(visitors)
     .values({
@@ -139,7 +151,7 @@ export async function createVisitorRecord(payload) {
       createdAt: now,
       updatedAt: now
     })
-    .$returningId();
+    .$returningId()
 
-  return inserted;
+  return inserted
 }
