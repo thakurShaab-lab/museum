@@ -1,42 +1,31 @@
 {
-  "name": "anubhava-mantapa-api",
+  "name": "kdb",
   "version": "1.0.0",
-  "description": "Secure and optimized visitor registration integration API",
-  "main": "src/server.js",
+  "private": true,
   "type": "module",
+  "main": "src/server.js",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
-    "test": "node --test",
-    "api-key:generate": "node src/utils/generateApiKey.js",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "dev": "node --enable-source-maps --watch src/server.js",
+    "start": "node --enable-source-maps src/server.js",
+    "generate-token": "node src/scripts/generate-token.js",
+    "db:push": "drizzle-kit push --config=drizzle.config.js"
   },
-  "keywords": [
-    "express",
-    "mysql",
-    "drizzle",
-    "security"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@hapi/boom": "^10.0.1",
-    "compression": "^1.8.1",
-    "cors": "^2.8.6",
-    "dotenv": "^16.6.1",
+    "compression": "^1.7.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.2",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.1.0",
-    "helmet": "^8.1.0",
-    "hpp": "^0.2.3",
-    "multer": "^2.0.2",
-    "mysql2": "^3.15.3",
-    "undici": "^7.16.0",
-    "zod": "^4.1.12"
+    "express": "^5.0.1",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.5",
+    "pino": "^9.5.0",
+    "pino-http": "^10.3.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.18.1",
-    "supertest": "^7.2.2"
+    "drizzle-kit": "^0.30.0",
+    "pino-pretty": "^13.0.0"
   }
 }
