@@ -1,3 +1,5 @@
+import dotenv from "dotenv"
+dotenv.config()
 import app from "./app.js"
 import { env } from "./config/env.js"
 import { logger } from "./utils/logger.js"
@@ -13,7 +15,7 @@ async function start() {
     process.exit(1)
   }
 
-  const server = app.listen(port, "0.0.0.0", () => {
+  const server = app.listen(port, '127.0.0.1', () => {
     logger.info({ port, env: env.NODE_ENV }, "API server listening")
   })
 

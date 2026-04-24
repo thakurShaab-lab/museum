@@ -4,6 +4,9 @@ import cors from "cors"
 import compression from "compression"
 import pinoHttp from "pino-http"
 import crypto from "node:crypto"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+import { dirname } from "node:path"
 
 import { env } from "./config/env.js"
 import { logger } from "./utils/logger.js"
@@ -32,7 +35,7 @@ const allowedOrigins = env.CORS_ORIGINS.split(",")
 app.use(
   cors({
     origin: allowedOrigins.length === 0 ? false : allowedOrigins,
-    methods: ["GET"],
+    methods: ["GET", "POST"],
     allowedHeaders: ["Authorization", "X-Api-Key", "Content-Type"],
     maxAge: 600,
   }),
@@ -41,6 +44,12 @@ app.use(
 app.use(compression())
 app.use(express.json({ limit: "100kb" }))
 app.use(express.urlencoded({ extended: false, limit: "100kb" }))
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+app.use('/uploaded_files', express.static(path.join(__dirname, "anubhav")))
+
 
 app.use((req, _res, next) => {
   req.id = req.headers["x-request-id"] || crypto.randomUUID()

@@ -24,9 +24,14 @@ export const getVisitor = asyncHandler(async (req, res) => {
   const visitorId = Number(req.params.visitor_id)
   const visitor = await visitorModel.findVisitorById(visitorId)
   if (!visitor) return fail(res, 404, "Visitor not found", "E_VISITOR_NOT_FOUND")
+
+  const host = req.get("host").split(":")[0]
+  const BASE_URL = `${req.protocol}://${host}`
+
+  const { password, otp_code, actkey, user_uq_token, customer_qr, ...safe } = visitor
+
   
-  const { password, otp_code, actkey, user_uq_token, ...safe } = visitor
-  return ok(res, safe)
+  return ok(res, { safe, visitor_qr: customer_qr ? `${BASE_URL}/anubhav/uploaded_files/qr/${customer_qr}` : `${BASE_URL}/anubhav/uploaded_files/no_qr.svg` })
 })
 
 export const getVisitors = asyncHandler(async (req, res) => {
