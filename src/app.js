@@ -16,6 +16,11 @@ import router from "./routes/index.js"
 
 const app = express()
 
+app.use((req, _res, next) => {
+  req.id = req.headers["x-request-id"] || crypto.randomUUID()
+  next()
+})
+
 app.disable("x-powered-by")
 app.set("trust proxy", 1)
 app.set("etag", "strong")
@@ -48,13 +53,13 @@ app.use(express.urlencoded({ extended: false, limit: "100kb" }))
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-app.use('/uploaded_files', express.static(path.join(__dirname, "anubhav")))
+// app.use('/uploaded_files', express.static(path.join(__dirname, "anubhav")))
+app.use(
+  '/uploaded_files',
+  express.static('/home/bkdbnewan/public_html/uploaded_files/grievances')
+);
 
-
-app.use((req, _res, next) => {
-  req.id = req.headers["x-request-id"] || crypto.randomUUID()
-  next()
-})
+// /home/bkdbnewan/public_html/uploaded_files/grievances
 
 app.use(
   pinoHttp({

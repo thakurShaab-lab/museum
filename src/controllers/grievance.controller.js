@@ -44,7 +44,6 @@ const STATUS_LABELS = {
 export const submitGrievance = asyncHandler(async (req, res) => {
   const { name, phone, email } = req.body
 
-  // At least one contact field is required to identify / link the visitor
   if (!name && !phone && !email) {
     return fail(
       res,
@@ -54,31 +53,58 @@ export const submitGrievance = asyncHandler(async (req, res) => {
     )
   }
 
-  // audio_file is mandatory per the PDF spec
   if (!req.file) {
     return fail(res, 400, "audio_file is required", "E_AUDIO_REQUIRED")
   }
 
-  // Validate extension
   const ext = path.extname(req.file.originalname).toLowerCase()
+
   if (!ALLOWED_EXTENSIONS.has(ext)) {
-    // Clean up the temp file
-    await fs.unlink(req.file.path).catch(() => {})
+    await fs.unlink(req.file.path).catch(() => { })
+
     return fail(
       res,
       400,
-      `Unsupported audio format '${ext}'. Allowed: ${[...ALLOWED_EXTENSIONS].join(", ")}`,
+      `Unsupported audio format '${ext}'. Allowed: ${[
+        ...ALLOWED_EXTENSIONS,
+      ].join(", ")}`,
       "E_INVALID_AUDIO_FORMAT",
     )
   }
 
-  // Resolve visitor_id from contact details (email → phone → name)
-  const visitor_id = await grievanceModel.findVisitorByContact({ name, phone, email })
-  // visitor_id may be null if visitor is not yet in CRM; we still accept the grievance
-  // with visitor_id = 0 so the supervisor can link it manually later.
+  let visitor_id = null
+
+  try {
+    visitor_id = await grievanceModel.findVisitorByContact({
+      name,
+      phone,
+      email,
+    })
+  } catch (error) {
+    await fs.unlink(req.file.path).catch(() => { })
+
+    return fail(
+      res,
+      400,
+      error.message,
+      "E_INVALID_VISITOR",
+    )
+  }
+
+  // If visitor not found
+  if (!visitor_id) {
+    await fs.unlink(req.file.path).catch(() => { })
+
+    return fail(
+      res,
+      400,
+      "No valid visitor found with provided details",
+      "E_VISITOR_NOT_FOUND",
+    )
+  }
 
   const insertId = await grievanceModel.createGrievance({
-    visitor_id: visitor_id ?? 0,
+    visitor_id,
     audio_file: req.file.filename,
   })
 
@@ -87,9 +113,10 @@ export const submitGrievance = asyncHandler(async (req, res) => {
     {
       grievance_id: `GRV${String(insertId).padStart(6, "0")}`,
       id: insertId,
-      visitor_id: visitor_id ?? 0,
-      visitor_matched: visitor_id !== null,
-      message: "Grievance submitted successfully. It has been queued for supervisor review.",
+      visitor_id,
+      visitor_matched: true,
+      message:
+        "Grievance submitted successfully. It has been queued for supervisor review.",
     },
     201,
   )
@@ -100,11 +127,14 @@ export const submitGrievance = asyncHandler(async (req, res) => {
 export const listGrievances = asyncHandler(async (req, res) => {
   const { limit, offset } = req.validatedQuery
 
-  const host = req.get("host").split(":")[0]
-  const BASE_URL = `${req.protocol}://${host}`
+ // const host = req.get("host").split(":")[0]
+ // const BASE_URL = `${req.protocol}://${host}`
+
+const BASE_URL = `http://bkdbnewanubhavmantap.in`
 
   const { rows, total } = await grievanceModel.findAllGrievances(limit, offset)
-  const items = rows.map((row) => ({ ...row, audio_file_url: row.audio_file ? `${BASE_URL}/anubhav/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` }))
+  const items = rows.map((row) => ({ ...row, audio_file_url: row.audio_file ? `/home/bkdbnewan/public_html/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` }))
+  // const items = rows.map((row) => ({ ...row, audio_file_url: row.audio_file ? `${BASE_URL}/anubhav/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` }))
 
   return ok(res, { count: items.length, total, limit, offset, items })
 })
@@ -114,13 +144,15 @@ export const listGrievances = asyncHandler(async (req, res) => {
 export const getGrievance = asyncHandler(async (req, res) => {
   const id = Number(req.params.grievance_id)
 
-  const host = req.get("host").split(":")[0]
-  const BASE_URL = `${req.protocol}://${host}`
+ //  const host = req.get("host").split(":")[0]
+const BASE_URL = `http://bkdbnewanubhavmantap.in`
+//  const BASE_URL = `${req.protocol}://${host}`
 
   const row = await grievanceModel.findGrievanceById(id)
   if (!row) return fail(res, 404, "Grievance not found", "E_GRIEVANCE_NOT_FOUND")
 
-    console.log("Grievance row:", row) // Debug log to inspect the raw database row
+  console.log("Grievance row:", row) // Debug log to inspect the raw database row
 
-  return ok(res, { row, audio_file_url: row.audio_file ? `${BASE_URL}/anubhav/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` })
+  return ok(res, { row, audio_file_url: row.audio_file ? `${BASE_URL}/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` })
+  // return ok(res, { row, audio_file_url: row.audio_file ? `${BASE_URL}/anubhav/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` })
 })

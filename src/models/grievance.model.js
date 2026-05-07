@@ -1,4 +1,4 @@
-import { eq, sql, desc } from "drizzle-orm"
+import { eq, sql, desc, or, and } from "drizzle-orm"
 import { db } from "../config/db.js"
 import { grievances } from "../db/schema/grievances.js"
 import { visitors } from "../db/schema/visitors.js"
@@ -11,8 +11,9 @@ import { visitors } from "../db/schema/visitors.js"
 export async function createGrievance({ visitor_id, audio_file }) {
   const [result] = await db.insert(grievances).values({
     visitor_id,
+    superadmin_id: 1,
     audio_file,
-    status: "0",   // 0 = Pending
+    status: "0",
     assigned_from: 0,
     assigned_to: 0,
     created_at: new Date(),
@@ -92,40 +93,75 @@ export async function findAllGrievances(limit, offset) {
  * (email preferred → phone → name as final fallback).
  * Returns the customers_id of the first matching visitor, or null.
  */
+// Model for finding visitors with contact details like phone and email
 export async function findVisitorByContact({ name, phone, email }) {
+
   // 1. Email match
   if (email) {
     const rows = await db
-      .select({ customers_id: visitors.customers_id })
+      .select({
+        customers_id: visitors.customers_id,
+        member_type: visitors.member_type,
+      })
       .from(visitors)
       .where(eq(visitors.email, email))
       .limit(1)
-    if (rows[0]) return rows[0].customers_id
+
+    if (rows[0]) {
+      // Only visitors with member_type = 6 can raise grievance
+      if (rows[0].member_type !== 6) {
+        throw new Error("Only registered visitors can submit grievances")
+      }
+
+      return rows[0].customers_id
+    }
   }
 
   // 2. Mobile number match
   if (phone) {
     const rows = await db
-      .select({ customers_id: visitors.customers_id })
+      .select({
+        customers_id: visitors.customers_id,
+        member_type: visitors.member_type,
+      })
       .from(visitors)
       .where(eq(visitors.mobile_number, phone))
       .limit(1)
-    if (rows[0]) return rows[0].customers_id
+
+    if (rows[0]) {
+      if (rows[0].member_type !== 6) {
+        throw new Error("Only registered visitors can submit grievances")
+      }
+
+      return rows[0].customers_id
+    }
   }
 
-  // 3. Name split match (last resort when no email/phone)
+  // 3. Name split match (only if no email/phone)
   if (name && !email && !phone) {
     const parts = name.trim().split(/\s+/)
     const firstName = parts[0] ?? ""
     const lastName = parts.slice(1).join(" ")
+
     const rows = await db
-      .select({ customers_id: visitors.customers_id })
+      .select({
+        customers_id: visitors.customers_id,
+        member_type: visitors.member_type,
+      })
       .from(visitors)
       .where(
-        sql`${visitors.first_name} = ${firstName} AND ${visitors.last_name} = ${lastName}`,
+        sql`${visitors.first_name} = ${firstName}
+            AND ${visitors.last_name} = ${lastName}`,
       )
       .limit(1)
-    if (rows[0]) return rows[0].customers_id
+
+    if (rows[0]) {
+      if (rows[0].member_type !== 6) {
+        throw new Error("Only registered visitors can submit grievances")
+      }
+
+      return rows[0].customers_id
+    }
   }
 
   return null

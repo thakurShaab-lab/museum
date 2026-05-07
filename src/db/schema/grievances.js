@@ -7,6 +7,8 @@ export const grievances = mysqlTable("wl_grievances", {
 
   visitor_id: int("visitor_id").notNull().default(0),
 
+  superadmin_id: int("superadmin_id").notNull().default(1),
+
   assigned_from: int("assigned_from").notNull().default(0),
 
   assigned_to: int("assigned_to").notNull().default(0),

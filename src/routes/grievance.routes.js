@@ -16,7 +16,8 @@ const __dirname = dirname(__filename)
 // Files stored at  src/anubhav/uploaded_files/grievances/<timestamp>-<random>.<ext>
 // Served statically via  /uploaded_files/grievances/<filename>
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, "..", "..", "..", "anubhav", "uploaded_files", "grievances"),
+  // destination: path.join(__dirname, "..", "..", "..", "anubhav", "uploaded_files", "grievances"),
+  destination: "/home/bkdbnewan/public_html/uploaded_files/grievances",
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase()
     const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
