@@ -53,13 +53,10 @@ app.use(express.urlencoded({ extended: false, limit: "100kb" }))
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// app.use('/uploaded_files', express.static(path.join(__dirname, "anubhav")))
 app.use(
   '/uploaded_files',
   express.static('/home/bkdbnewan/public_html/uploaded_files/grievances')
 );
-
-// /home/bkdbnewan/public_html/uploaded_files/grievances
 
 app.use(
   pinoHttp({

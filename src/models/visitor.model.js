@@ -49,3 +49,23 @@ export async function findVisitorImages(customerId) {
     .limit(1)
   return rows[0] ?? null
 }
+
+export async function visitorIdCard(visitor_id){
+  const rows = await db
+    .select({
+      visitor_id: visitors.customers_id,
+      name: visitors.first_name,
+      mobile_number: visitors.mobile_number,
+      blood_group: visitors.blood_group,
+      age: visitors.age,
+      illness: visitors.illness,
+      image: visitors.profile_photo,
+      visitor_qr: visitors.customer_qr
+    })
+    .from(visitors)
+    .where(eq(visitors.customers_id, visitor_id))
+    .limit(1)
+
+    console.log("Visitor ID Card Query Result:", rows)
+  return rows[0] ?? null
+}

@@ -133,7 +133,7 @@ export const listGrievances = asyncHandler(async (req, res) => {
 const BASE_URL = `http://bkdbnewanubhavmantap.in`
 
   const { rows, total } = await grievanceModel.findAllGrievances(limit, offset)
-  const items = rows.map((row) => ({ ...row, audio_file_url: row.audio_file ? `/home/bkdbnewan/public_html/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` }))
+  const items = rows.map((row) => ({ ...row, audio_file_url: row.audio_file ? `${BASE_URL}/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/uploaded_files/no_sound.png` }))
   // const items = rows.map((row) => ({ ...row, audio_file_url: row.audio_file ? `${BASE_URL}/anubhav/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` }))
 
   return ok(res, { count: items.length, total, limit, offset, items })
@@ -153,6 +153,6 @@ const BASE_URL = `http://bkdbnewanubhavmantap.in`
 
   console.log("Grievance row:", row) // Debug log to inspect the raw database row
 
-  return ok(res, { row, audio_file_url: row.audio_file ? `${BASE_URL}/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` })
+  return ok(res, { row, audio_file_url: row.audio_file ? `${BASE_URL}/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/uploaded_files/no_sound.png` })
   // return ok(res, { row, audio_file_url: row.audio_file ? `${BASE_URL}/anubhav/uploaded_files/grievances/${row.audio_file}` : `${BASE_URL}/anubhav/uploaded_files/no_sound.png` })
 })

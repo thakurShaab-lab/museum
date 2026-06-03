@@ -26,16 +26,16 @@ router.get(
 router.get(
   "/:visitor_id/exists",
   validate({ params: z.object({ visitor_id: visitorIdSchema }) }),
-  authenticate,
-  enforceSelfAccess,
+  // authenticate,
+  // enforceSelfAccess,
   controller.checkVisitorExists,
 )
 
 router.get(
   "/:visitor_id",
   validate({ params: z.object({ visitor_id: visitorIdSchema }) }),
-  authenticate,
-  enforceSelfAccess,
+  // authenticate,
+  // enforceSelfAccess,
   controller.getVisitor,
 )
 
@@ -47,9 +47,23 @@ router.get(
       image_index: imageIndexSchema,
     }),
   }),
-  authenticate,
-  enforceSelfAccess,
+  // authenticate,
+  // enforceSelfAccess,
   controller.getVisitorImage,
 )
+
+router.get(
+  "/:visitor_id/id-card",
+  validate({ params: z.object({ visitor_id: visitorIdSchema }) }),
+  // authenticate,
+  // enforceSelfAccess,
+  controller.getVisitorIdCard,
+)
+
+router.get(
+  "/:visitor_id/id-card-pdf",
+  validate({ params: z.object({ visitor_id: visitorIdSchema }) }),
+  controller.downloadVisitorIdCard
+);
 
 export default router
